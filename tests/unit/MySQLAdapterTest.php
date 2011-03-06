@@ -39,6 +39,10 @@ class MySQLAdapterTest extends PHPUnit_Framework_TestCase {
 			if($this->adapter->has_table('users',true)) {
 				$this->adapter->drop_table('users');
 			}
+			
+			if($this->adapter->has_table('roles',true)) {
+				$this->adapter->drop_table('roles');
+			}
 
 			if($this->adapter->has_table(RUCKUSING_TS_SCHEMA_TBL_NAME,true)) {
 				$this->adapter->drop_table(RUCKUSING_TS_SCHEMA_TBL_NAME);
@@ -297,8 +301,63 @@ class MySQLAdapterTest extends PHPUnit_Framework_TestCase {
 			$this->adapter->remove_index("users", "name", array('name' => 'my_special_index'));
 			$this->assertEquals(false, $this->adapter->has_index("users", "name", array('name' => 'my_special_index')) );						
 		}
-
 		
+		public function test_add_constraint_delete_cascade() {
+			$this->adapter->execute_ddl("CREATE TABLE `roles` ( name varchar(20), id int(11) ) ENGINE=InnoDB;");
+			$this->adapter->execute_ddl("CREATE TABLE `users` ( name varchar(20), role_id int(11) ) ENGINE=InnoDB;");	
+			
+			$this->adapter->execute_ddl("INSERT INTO roles (name, id) VALUES ('admin', 1)");
+			$this->adapter->execute_ddl("INSERT INTO users (name, role_id) VALUES ('daniel', 1)");
+			
+			$this->adapter->add_index("users", "role_id");
+			$this->adapter->add_index("roles", "id");
+			$this->adapter->add_constraint("users", "role_id", "roles", "id", array('delete' => 'CASCADE'));
+			
+			$count = $this->adapter->select_one("SELECT COUNT(*) AS count FROM users WHERE name = 'daniel'");
+			$this->assertEquals(1, $count['count']);
+			
+			$this->adapter->execute_ddl("DELETE FROM roles WHERE id = 1");
+			$count = $this->adapter->select_one("SELECT COUNT(*) AS count FROM users WHERE name = 'daniel'");
+			$this->assertEquals(0, $count['count']);
+			
+			$this->adapter->execute_ddl("INSERT INTO roles (name, id) VALUES ('admin', 1)");
+			$this->adapter->execute_ddl("INSERT INTO users (name, role_id) VALUES ('daniel', 1)");
+			
+			$this->adapter->remove_constraint("users", "role_id", "roles", "id");
+			
+			$this->adapter->execute_ddl("DELETE FROM roles WHERE id = 1");
+			$count = $this->adapter->select_one("SELECT COUNT(*) AS count FROM users WHERE name = 'daniel'");
+			$this->assertEquals(1, $count['count']);
+		}
+		
+		public function test_add_constraint_delete_set_null() {
+			$this->adapter->execute_ddl("CREATE TABLE `roles` ( name varchar(20), id int(11) ) ENGINE=InnoDB;");
+			$this->adapter->execute_ddl("CREATE TABLE `users` ( name varchar(20), role_id int(11) ) ENGINE=InnoDB;");	
+			
+			$this->adapter->execute_ddl("INSERT INTO roles (name, id) VALUES ('admin', 1)");
+			$this->adapter->execute_ddl("INSERT INTO users (name, role_id) VALUES ('daniel', 1)");
+			
+			$this->adapter->add_index("users", "role_id");
+			$this->adapter->add_index("roles", "id");
+			$this->adapter->add_constraint("users", "role_id", "roles", "id", array('delete' => 'SET NULL'));
+			
+			$user = $this->adapter->select_one("SELECT role_id FROM users where name = 'daniel'");
+			$this->assertEquals(1, $user['role_id']);
+			
+			$this->adapter->execute_ddl("DELETE FROM roles WHERE id = 1");
+			$user = $this->adapter->select_one("SELECT role_id FROM users where name = 'daniel'");
+			$this->assertEquals(NULL, $user['role_id']);
+			
+			$this->adapter->execute_ddl("DELETE FROM users WHERE name = 'daniel'");
+			$this->adapter->execute_ddl("INSERT INTO roles (name, id) VALUES ('admin', 1)");
+			$this->adapter->execute_ddl("INSERT INTO users (name, role_id) VALUES ('daniel', 1)");
+			
+			$this->adapter->remove_constraint("users", "role_id", "roles", "id");
+			$this->adapter->execute_ddl("DELETE FROM roles WHERE id = 1");
+			
+			$user = $this->adapter->select_one("SELECT role_id FROM users where name = 'daniel'");
+			$this->assertEquals(1, $user['role_id']);
+		}
 		
 		/*
 		public function test_determine_query_type() {

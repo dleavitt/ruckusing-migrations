@@ -54,6 +54,14 @@ class Ruckusing_BaseMigration {
 		return $this->adapter->remove_index($table_name, $column_name);					
 	}
 	
+	public function add_constraint($table_name, $related_column, $related_table, $far_key, $options = array()) {
+		return $this->adapter->add_constraint($table_name, $column_name, $related_table, $related_column, $options);			
+	}
+	
+	public function remove_constraint($table_name, $column_name) {
+		return $this->adapter->remove_constraint($table_name, $column_name);					
+	}
+	
 	public function create_table($table_name, $options = array()) {
 		return $this->adapter->create_table($table_name, $options);
 	}

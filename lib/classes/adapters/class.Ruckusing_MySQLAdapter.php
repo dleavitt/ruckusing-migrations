@@ -469,6 +469,77 @@ class Ruckusing_MySQLAdapter extends Ruckusing_BaseAdapter implements Ruckusing_
 		return $indexes;
 	}//has_index
 
+	public function add_constraint($table_name, $column_name, $related_table, $related_column, $options = array())
+	{
+		if(empty($table_name)) {
+			throw new Ruckusing_ArgumentException("Missing table name parameter");
+		}
+		if(empty($column_name)) {
+			throw new Ruckusing_ArgumentException("Missing column name parameter");
+		}
+		if(empty($related_table)) {
+			throw new Ruckusing_ArgumentException("Missing related table parameter");
+		}
+		if(empty($related_column)) {
+			throw new Ruckusing_ArgumentException("Missing far key parameter");
+		}
+		
+		if(is_array($options) && array_key_exists('unique', $options)) {
+			$unique = true;
+		} else {
+			$unique = false;
+		}
+		
+		if(is_array($options) && array_key_exists('name', $options)) {
+			$constraint_name = $options['name'];
+		} else {
+			$constraint_name = Ruckusing_NamingUtil::constraint_name($table_name, $column_name);
+		}
+		
+		if(strlen($constraint_name) > MAX_IDENTIFIER_LENGTH) {
+		    $msg = "The auto-generated constraint name is too long for MySQL (max is 64 chars). ";
+		    $msg .= "Considering using 'name' option parameter to specify a custom name for this index.";
+		    $msg .= " Note: you will also need to specify";
+		    $msg .= " this custom name in a drop_index() - if you have one.";
+		    throw new Ruckusing_InvalidIndexNameException($msg);
+	    }
+	
+		$sql = "ALTER TABLE $table_name 
+				ADD CONSTRAINT $constraint_name
+				FOREIGN KEY ($column_name)
+				REFERENCES $related_table ($related_column)";
+
+		// TODO: check that it's a valid option?
+		if (array_key_exists('delete', $options)) {
+			//RESTRICT | CASCADE | SET NULL | NO ACTION
+			$sql .= " ON DELETE $options[delete]";
+		}
+		if (array_key_exists('update', $options)) {
+			$sql .= " ON UPDATE $options[update]";
+		}
+		
+		return $this->execute_ddl($sql);
+	}//add_constraint
+	
+	public function remove_constraint($table_name, $column_name, $options = array()) {
+		if(empty($table_name)) {
+			throw new Ruckusing_ArgumentException("Missing table name parameter");
+		}
+		if(empty($column_name)) {
+			throw new Ruckusing_ArgumentException("Missing column name parameter");
+		}
+		//did the user specify an index name?
+		if(is_array($options) && array_key_exists('name', $options)) {
+			$constraint_name = $options['name'];
+		} else {
+			$constraint_name = Ruckusing_NamingUtil::constraint_name($table_name, $column_name);
+		}
+		$sql = "ALTER TABLE $table_name
+				DROP FOREIGN KEY $constraint_name";
+				
+		return $this->execute_ddl($sql);
+	}//remove_constraint
+	
   //;$limit = null, $precision = null, $scale = null
 	public function type_to_sql($type, $options = array()) {		
 		$natives = $this->native_database_types();

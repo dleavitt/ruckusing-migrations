@@ -35,6 +35,9 @@ class MySQLTableDefinitionTest extends PHPUnit_Framework_TestCase {
 		if($this->adapter->has_table('users',true)) {
 			$this->adapter->drop_table('users');
 		}
+		if($this->adapter->has_table('roles',true)) {
+			$this->adapter->drop_table('roles');
+		}
 
 	}
 

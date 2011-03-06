@@ -28,6 +28,8 @@ interface Ruckusing_iAdapter {
 	public function change_column($table_name, $column_name, $type, $options = array());
 	public function remove_index($table_name, $column_name);
 	public function add_index($table_name, $column_name, $options = array());
+	public function add_constraint($table_name, $column_name, $related_table, $related_column, $options = array());
+	public function remove_constraint($table_name, $column_name);
 
 }
 

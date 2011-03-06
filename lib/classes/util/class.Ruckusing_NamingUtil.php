@@ -83,6 +83,12 @@ class Ruckusing_NamingUtil {
 		$name .= sprintf("_%s", $column_str);
 		return $name;
 	}
+	
+	public static function constraint_name($table_name, $column_name) {
+		$name = sprintf("fk_%s", self::underscore($table_name));
+		$name .= sprintf("_%s", $column_name);
+		return $name;
+	}
   
 	public static function underscore($str) {
 		return preg_replace('/\W/', '_', $str);
